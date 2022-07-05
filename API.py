@@ -1,29 +1,43 @@
-# This example uses Python 2.7 and the python-request library.
-import time
-from requests import Session
+from symtable import Symbol
+from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 import json
+from Keys import CoinMarketCapKey
+import datetime
+from datetime import date, timedelta
 
-url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/trending/latest"
+url = 'https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
 parameters = {
-    "time_period": "12h",
-    "convert": "USD"
+    'start': '1',
+    'limit': '5000',
+    'convert': 'USD'
 }
 headers = {
-    "Accepts": "application/json",
-    "X-CMC_PRO_API_KEY": "API KEY",
+    'Accepts': 'application/json',
+    'X-CMC_PRO_API_KEY': CoinMarketCapKey,
 }
 
 session = Session()
 session.headers.update(headers)
 
-while True:
-    try:
-        response = session.get(url, params=parameters)
-        data = json.loads(response.text)
-        price = data["data"][10]["quote"]["USD"]["price"]
-        print(price)
+try:
+    response = session.get(url, params=parameters)
+    data = json.loads(response.text)
 
-    except (ConnectionError, Timeout, TooManyRedirects) as e:
-        print(e)
-    time.sleep(5)
+    today = date.today()
+    yesterday = str(today - timedelta(days=1))
+    yesterday_datetime = datetime.datetime.strptime(yesterday, '%Y-%m-%d')
+
+    for entry in data["data"]:
+        symbol = entry["symbol"]
+
+        date_added_str = entry["date_added"][:10]
+        date_added = datetime.datetime.strptime(date_added_str, '%Y-%m-%d')
+
+        if yesterday_datetime < date_added:
+            print(symbol + ": " + date_added_str)
+        else:
+            pass
+
+except (ConnectionError, Timeout, TooManyRedirects) as e:
+    print(e)
